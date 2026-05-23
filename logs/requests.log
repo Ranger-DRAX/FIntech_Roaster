@@ -1,0 +1,2 @@
+2026-05-23 15:35:04,305 - IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 | Method: GET | Path: / | Status: 200 | Time: 13.29ms
+2026-05-23 15:35:18,618 - IP: 127.0.0.1 | User-Agent: Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/148.0.0.0 Safari/537.36 | Method: GET | Path: / | Status: 200 | Time: 1.68ms
