@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import Account, Card, Merchant, Transaction
+from .models import Account, AuditLog, Card, Merchant, Transaction
 
 
 @admin.register(Account)
@@ -32,3 +32,11 @@ class TransactionAdmin(admin.ModelAdmin):
     list_filter = ("transaction_type", "status", "currency")
     search_fields = ("account__account_number", "description")
     readonly_fields = ("timestamp",)
+
+
+@admin.register(AuditLog)
+class AuditLogAdmin(admin.ModelAdmin):
+    list_display = ("action", "model_name", "user", "object_id", "created_at")
+    list_filter = ("action", "model_name")
+    search_fields = ("user__username", "description")
+    readonly_fields = ("created_at",)

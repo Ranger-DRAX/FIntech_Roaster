@@ -271,3 +271,39 @@ class Transaction(models.Model):
 
     def __str__(self):
         return f"{self.transaction_type} {self.amount} [{self.status}]"
+
+
+class AuditLog(models.Model):
+    class Action(models.TextChoices):
+        CREATE = "CREATE", "Create"
+        UPDATE = "UPDATE", "Update"
+        DELETE = "DELETE", "Delete"
+        LOGIN = "LOGIN", "Login"
+        LOGOUT = "LOGOUT", "Logout"
+        TRANSFER = "TRANSFER", "Transfer"
+
+    user = models.ForeignKey(
+        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL,
+        null=True, related_name="audit_logs",
+    )
+    action = models.CharField(max_length=10, choices=Action.choices)
+    model_name = models.CharField(max_length=50)
+    object_id = models.CharField(max_length=100, blank=True, default="")
+    description = models.TextField(blank=True, default="")
+    ip_address = models.GenericIPAddressField(null=True, blank=True)
+    metadata = models.JSONField(default=dict, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, db_index=True)
+
+    objects = models.Manager()
+
+    class Meta:
+        db_table = "fintech_audit_log"
+        indexes = [
+            models.Index(fields=["user", "action"]),
+            models.Index(fields=["model_name", "object_id"]),
+            models.Index(fields=["created_at"]),
+        ]
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"{self.action} {self.model_name} by {self.user}"

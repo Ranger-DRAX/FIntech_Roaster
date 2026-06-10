@@ -2,4 +2,6 @@ from django.apps import AppConfig
 
 
 class FintechConfig(AppConfig):
-    name = 'fintech'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "fintech"
+    verbose_name = "Fintech"
