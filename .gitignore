@@ -1,0 +1,9 @@
+# -----
+customMiddleware/
+djangoInternals/
+logs/
+python-OOP/
+venv/
+db.sqlite3
+__pycache__/
+# -----
