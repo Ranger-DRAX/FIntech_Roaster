@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Cards - Fintech{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;">
+    <h1>Cards</h1>
+    <a href="{% url 'fintech:card-create' %}" class="btn btn-success">+ New Card</a>
+</div>
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Card #</th>
+                <th>User</th>
+                <th>Account</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Expiry</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for card in cards %}
+            <tr>
+                <td>****{{ card.card_number|slice:"-4:" }}</td>
+                <td>{{ card.user }}</td>
+                <td>{{ card.account.account_number }}</td>
+                <td>{{ card.card_type }}</td>
+                <td><span class="badge badge-{{ card.status|lower }}">{{ card.status }}</span></td>
+                <td>{{ card.expiry_date|date:"m/y" }}</td>
+                <td class="inline-group">
+                    <a href="{% url 'fintech:card-update' card.pk %}" class="btn btn-primary btn-sm">Edit</a>
+                    <a href="{% url 'fintech:card-delete' card.pk %}" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-muted">No cards found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1">&laquo; first</a>
+        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+    {% endif %}
+    <span class="current">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

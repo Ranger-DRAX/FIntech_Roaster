@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Dashboard - Fintech{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="value">{{ total_accounts }}</div>
+        <div class="label">Total Accounts</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ active_accounts }}</div>
+        <div class="label">Active Accounts</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ total_transactions }}</div>
+        <div class="label">Total Transactions</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ completed_transactions }}</div>
+        <div class="label">Completed</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">${{ total_volume|floatformat:0 }}</div>
+        <div class="label">Total Volume</div>
+    </div>
+</div>
+
+<h2>Top Merchants</h2>
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Merchant</th>
+                <th>Category</th>
+                <th>Volume</th>
+                <th>Transactions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for m in top_merchants %}
+            <tr>
+                <td>{{ m.name }}</td>
+                <td>{{ m.category }}</td>
+                <td>${{ m.total_volume|floatformat:2 }}</td>
+                <td>{{ m.txn_count }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted">No data yet.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

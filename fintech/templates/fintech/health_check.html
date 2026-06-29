@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+{% block title %}Health Check - Fintech{% endblock %}
+{% block content %}
+<h1>System Health</h1>
+<div class="stats-grid">
+    <div class="stat-card">
+        <div class="value">{{ account_count }}</div>
+        <div class="label">Total Accounts</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ active_accounts }}</div>
+        <div class="label">Active</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ frozen_accounts }}</div>
+        <div class="label">Frozen</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ closed_accounts }}</div>
+        <div class="label">Closed</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ card_count }}</div>
+        <div class="label">Cards</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ merchant_count }}</div>
+        <div class="label">Merchants</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ txn_count }}</div>
+        <div class="label">Transactions</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">${{ total_volume|floatformat:0 }}</div>
+        <div class="label">Total Volume</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ pending_txns }}</div>
+        <div class="label">Pending</div>
+    </div>
+    <div class="stat-card">
+        <div class="value">{{ failed_txns }}</div>
+        <div class="label">Failed</div>
+    </div>
+</div>
+
+<h2>Request Info</h2>
+<div class="card">
+    <table>
+        <tr><th>Method</th><td>{{ request_method }}</td></tr>
+        <tr><th>Path</th><td>{{ request_path }}</td></tr>
+        <tr><th>Timestamp</th><td>{{ now|date:"Y-m-d H:i:s e" }}</td></tr>
+    </table>
+</div>
+{% endblock %}

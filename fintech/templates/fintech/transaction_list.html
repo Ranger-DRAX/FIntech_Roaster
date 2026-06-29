@@ -1,0 +1,48 @@
+{% extends "base.html" %}
+{% block title %}Transactions - Fintech{% endblock %}
+{% block content %}
+<h1>Transactions</h1>
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>ID</th>
+                <th>Account</th>
+                <th>Amount</th>
+                <th>Type</th>
+                <th>Status</th>
+                <th>Merchant</th>
+                <th>Date</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for txn in transactions %}
+            <tr>
+                <td>{{ txn.transaction_id|truncatechars:8 }}</td>
+                <td>{{ txn.account.account_number }}</td>
+                <td>${{ txn.amount|floatformat:2 }}</td>
+                <td>{{ txn.transaction_type }}</td>
+                <td><span class="badge badge-{{ txn.status|lower }}">{{ txn.status }}</span></td>
+                <td>{{ txn.merchant.name|default:"—" }}</td>
+                <td>{{ txn.timestamp|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-muted">No transactions found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1">&laquo; first</a>
+        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+    {% endif %}
+    <span class="current">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

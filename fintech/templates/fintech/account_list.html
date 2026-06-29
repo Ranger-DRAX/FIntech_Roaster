@@ -1,0 +1,54 @@
+{% extends "base.html" %}
+{% block title %}Accounts - Fintech{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;">
+    <h1>Accounts</h1>
+    <a href="{% url 'fintech:account-create' %}" class="btn btn-success">+ New Account</a>
+</div>
+<div class="card">
+    <table>
+        <thead>
+            <tr>
+                <th>Account #</th>
+                <th>User</th>
+                <th>Type</th>
+                <th>Balance</th>
+                <th>Currency</th>
+                <th>Status</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for account in accounts %}
+            <tr>
+                <td>{{ account.account_number }}</td>
+                <td>{{ account.user }}</td>
+                <td>{{ account.account_type }}</td>
+                <td>${{ account.balance|floatformat:2 }}</td>
+                <td>{{ account.currency }}</td>
+                <td><span class="badge badge-{{ account.status|lower }}">{{ account.status }}</span></td>
+                <td class="inline-group">
+                    <a href="{% url 'fintech:account-detail' account.pk %}" class="btn btn-primary btn-sm">View</a>
+                    <a href="{% url 'fintech:account-update' account.pk %}" class="btn btn-primary btn-sm">Edit</a>
+                </td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="7" class="text-muted">No accounts found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% if is_paginated %}
+<div class="pagination">
+    {% if page_obj.has_previous %}
+        <a href="?page=1">&laquo; first</a>
+        <a href="?page={{ page_obj.previous_page_number }}">previous</a>
+    {% endif %}
+    <span class="current">{{ page_obj.number }} of {{ page_obj.paginator.num_pages }}</span>
+    {% if page_obj.has_next %}
+        <a href="?page={{ page_obj.next_page_number }}">next</a>
+        <a href="?page={{ page_obj.paginator.num_pages }}">last &raquo;</a>
+    {% endif %}
+</div>
+{% endif %}
+{% endblock %}

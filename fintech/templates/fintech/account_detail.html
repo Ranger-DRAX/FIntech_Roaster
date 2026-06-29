@@ -1,0 +1,66 @@
+{% extends "base.html" %}
+{% block title %}Account {{ account.account_number }}{% endblock %}
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;">
+    <h1>Account {{ account.account_number }}</h1>
+    <div>
+        <a href="{% url 'fintech:account-update' account.pk %}" class="btn btn-primary">Edit</a>
+        <a href="{% url 'fintech:account-list' %}" class="btn">&larr; Back</a>
+    </div>
+</div>
+<div class="card">
+    <table>
+        <tr><th>User</th><td>{{ account.user }}</td></tr>
+        <tr><th>Type</th><td>{{ account.account_type }}</td></tr>
+        <tr><th>Balance</th><td>${{ account.balance|floatformat:2 }}</td></tr>
+        <tr><th>Currency</th><td>{{ account.currency }}</td></tr>
+        <tr><th>Status</th><td><span class="badge badge-{{ account.status|lower }}">{{ account.status }}</span></td></tr>
+        <tr><th>Created</th><td>{{ account.created_at }}</td></tr>
+        <tr><th>Updated</th><td>{{ account.updated_at }}</td></tr>
+    </table>
+</div>
+
+<h2>Cards ({{ account.cards.count }})</h2>
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>Card #</th><th>Type</th><th>Status</th><th>Expiry</th></tr>
+        </thead>
+        <tbody>
+            {% for card in account.cards.all %}
+            <tr>
+                <td>****{{ card.card_number|slice:"-4:" }}</td>
+                <td>{{ card.card_type }}</td>
+                <td><span class="badge badge-{{ card.status|lower }}">{{ card.status }}</span></td>
+                <td>{{ card.expiry_date|date:"m/y" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="4" class="text-muted">No cards.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<h2>Recent Transactions</h2>
+<div class="card">
+    <table>
+        <thead>
+            <tr><th>ID</th><th>Amount</th><th>Type</th><th>Status</th><th>Merchant</th><th>Date</th></tr>
+        </thead>
+        <tbody>
+            {% for txn in account.transactions.all|slice:":20" %}
+            <tr>
+                <td>{{ txn.transaction_id|truncatechars:8 }}</td>
+                <td>${{ txn.amount|floatformat:2 }}</td>
+                <td>{{ txn.transaction_type }}</td>
+                <td><span class="badge badge-{{ txn.status|lower }}">{{ txn.status }}</span></td>
+                <td>{{ txn.merchant.name|default:"—" }}</td>
+                <td>{{ txn.timestamp|date:"Y-m-d H:i" }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="6" class="text-muted">No transactions.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

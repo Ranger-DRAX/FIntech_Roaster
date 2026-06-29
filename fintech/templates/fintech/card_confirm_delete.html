@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Delete Card - Fintech{% endblock %}
+{% block content %}
+<h1>Delete Card</h1>
+<div class="card">
+    <p>Are you sure you want to delete card <strong>****{{ card.card_number|slice:"-4:" }}</strong> ({{ card.card_type }})?</p>
+    <p class="text-muted">This action cannot be undone.</p>
+    <form method="post" style="margin-top:1rem;">
+        {% csrf_token %}
+        <div style="display:flex;gap:0.5rem;">
+            <button type="submit" class="btn btn-danger">Yes, delete</button>
+            <a href="{% url 'fintech:card-list' %}" class="btn">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}
