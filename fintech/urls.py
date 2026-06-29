@@ -1,10 +1,16 @@
-from django.urls import path
+from django.urls import include, path
 
 from . import views
 
 app_name = "fintech"
 
 urlpatterns = [
+    # ── DRF API (3 view styles) ──────────────────────────────────────────────
+    # v1 → APIView          → /fintech/api/v1/merchants/
+    # v2 → GenericAPIView   → /fintech/api/v2/merchants/
+    # v3 → ModelViewSet     → /fintech/api/v3/merchants/
+    path("api/", include("fintech.api_urls")),
+
     path("", views.orm_queries_demo, name="orm-queries-demo"),
     path("home/", views.HomePageView.as_view(), name="home"),
     path("health/", views.HealthCheckView.as_view(), name="health-check"),
