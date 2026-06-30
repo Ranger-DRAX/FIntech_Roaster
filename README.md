@@ -41,6 +41,8 @@ upay_backend/
 │   ├── models.py            # Account, Transaction, Merchant, Card, AuditLog
 │   ├── views.py             # Class-based + function-based views
 │   ├── urls.py              # Fintech app URL routes
+│   ├── api_views.py         # DRF views: APIView, GenericAPIView, ModelViewSet
+│   ├── api_urls.py          # DRF URL routing: v1/v2/v3 + DefaultRouter
 │   ├── orm_queries.py       # 15 standalone ORM queries (shell script)
 │   ├── tests.py
 │   ├── migrations/
@@ -101,7 +103,7 @@ python manage.py runserver
 
 The application will be available at `http://127.0.0.1:8000/`.
 
-## API Endpoints
+## Template Endpoints
 
 | URL                              | View                        | Description                                      |
 |----------------------------------|-----------------------------|--------------------------------------------------|
@@ -114,6 +116,187 @@ The application will be available at `http://127.0.0.1:8000/`.
 | `/fintech/statement-slow/`       | `user_statement_slow`       | N+1 query demo — slow endpoint                   |
 | `/admin/`                        | Django Admin                | Admin interface                                  |
 | `/__debug__/`                    | Debug Toolbar               | SQL panel, profiling, and inspection             |
+
+## REST API (DRF)
+
+The REST API is mounted at `/fintech/api/` and exposes three versioned namespaces that demonstrate progressively more abstract DRF view patterns — all serving identical functionality.
+
+```
+Base URL: http://localhost:8000/fintech/api/
+```
+
+### View-layer styles
+
+| Namespace | Style | When to use |
+|-----------|-------|-------------|
+| `v1/` | **APIView** | Full manual control; non-CRUD endpoints, webhooks, auth flows |
+| `v2/` | **GenericAPIView + Mixins** | Standard CRUD with per-request queryset customisation |
+| `v3/` | **ModelViewSet + DefaultRouter** | Standard CRUD with minimal boilerplate; consistent URL patterns |
+
+### v1 & v2 — Merchant endpoints
+
+Both namespaces expose the same URL structure for `Merchant`:
+
+| Method | URL | Action |
+|--------|-----|--------|
+| `GET` | `/fintech/api/v{1,2}/merchants/` | List all merchants |
+| `POST` | `/fintech/api/v{1,2}/merchants/` | Create a merchant |
+| `GET` | `/fintech/api/v{1,2}/merchants/<pk>/` | Retrieve a merchant |
+| `PUT` | `/fintech/api/v{1,2}/merchants/<pk>/` | Full update |
+| `PATCH` | `/fintech/api/v{1,2}/merchants/<pk>/` | Partial update |
+| `DELETE` | `/fintech/api/v{1,2}/merchants/<pk>/` | Delete |
+
+### v3 — ModelViewSet + DefaultRouter
+
+The `DefaultRouter` auto-generates all six URL patterns per registered resource and provides a browsable API root at `/fintech/api/v3/`.
+
+#### Registered resources
+
+| Prefix | ViewSet | basename |
+|--------|---------|----------|
+| `merchants/` | `MerchantViewSet` | `v3-merchant` |
+| `accounts/` | `AccountViewSet` | `account` |
+| `transactions/` | `TransactionViewSet` | `transaction` |
+
+#### Generated URL names
+
+Each `router.register()` call produces two named URL patterns:
+
+```
+<basename>-list    →  GET  POST   /v3/<prefix>/
+<basename>-detail  →  GET  PUT  PATCH  DELETE   /v3/<prefix>/<pk>/
+```
+
+#### Full v3 endpoint table
+
+| Method | URL | Action |
+|--------|-----|--------|
+| `GET` | `/fintech/api/v3/merchants/` | List merchants |
+| `POST` | `/fintech/api/v3/merchants/` | Create merchant |
+| `GET` | `/fintech/api/v3/merchants/<pk>/` | Retrieve merchant |
+| `PUT` | `/fintech/api/v3/merchants/<pk>/` | Full update |
+| `PATCH` | `/fintech/api/v3/merchants/<pk>/` | Partial update |
+| `DELETE` | `/fintech/api/v3/merchants/<pk>/` | Delete |
+| `GET` | `/fintech/api/v3/accounts/` | List accounts |
+| `POST` | `/fintech/api/v3/accounts/` | Create account |
+| `GET` | `/fintech/api/v3/accounts/<pk>/` | Retrieve account |
+| `PUT` | `/fintech/api/v3/accounts/<pk>/` | Full update |
+| `PATCH` | `/fintech/api/v3/accounts/<pk>/` | Partial update |
+| `DELETE` | `/fintech/api/v3/accounts/<pk>/` | Delete |
+| `GET` | `/fintech/api/v3/transactions/` | List transactions |
+| `POST` | `/fintech/api/v3/transactions/` | Create transaction |
+| `GET` | `/fintech/api/v3/transactions/<uuid>/` | Retrieve transaction |
+| `PUT` | `/fintech/api/v3/transactions/<uuid>/` | Full update |
+| `PATCH` | `/fintech/api/v3/transactions/<uuid>/` | Partial update |
+| `DELETE` | `/fintech/api/v3/transactions/<uuid>/` | Delete |
+
+> `Transaction` uses a UUID primary key (`transaction_id`). The router picks it up automatically — no extra `lookup_field` configuration required.
+
+### Serializers
+
+#### MerchantSerializer
+
+| Field | Read-only | Notes |
+|-------|-----------|-------|
+| `id` | ✅ | Auto PK |
+| `name` | | |
+| `merchant_id` | | Unique |
+| `category` | | `RETAIL` `FOOD` `TRAVEL` `ENTERTAINMENT` `UTILITIES` `OTHER` |
+| `is_active` | | |
+| `fee_rate` | | Default `0.0150` |
+| `created_at` | ✅ | Auto-set |
+
+#### AccountSerializer
+
+| Field | Read-only | Notes |
+|-------|-----------|-------|
+| `id` | ✅ | Auto PK |
+| `user` | | FK → User; override `perform_create()` to lock to `request.user` |
+| `account_number` | | Unique |
+| `account_type` | | `SAVINGS` `CHECKING` `CREDIT` |
+| `balance` | | ≥ 0 (DB constraint) |
+| `currency` | | ISO code, default `USD` |
+| `status` | | `ACTIVE` `FROZEN` `CLOSED` |
+| `created_at` | ✅ | Auto-set |
+| `updated_at` | ✅ | Auto-updated |
+
+#### TransactionSerializer
+
+| Field | Read-only | Notes |
+|-------|-----------|-------|
+| `transaction_id` | ✅ | UUID PK, auto-generated |
+| `account` | | FK → Account |
+| `card` | | FK → Card, nullable |
+| `merchant` | | FK → Merchant, nullable |
+| `amount` | | > 0 (DB constraint) |
+| `currency` | | ISO code, default `USD` |
+| `transaction_type` | | `DEBIT` `CREDIT` `REFUND` |
+| `status` | | `PENDING` `COMPLETED` `FAILED` `REVERSED` |
+| `description` | | Optional text |
+| `timestamp` | ✅ | Auto-set |
+| `related_transaction` | | Self-FK, nullable (for reversals) |
+
+### Query-string filters
+
+`AccountViewSet` and `TransactionViewSet` support optional URL query parameters:
+
+```
+GET /fintech/api/v3/accounts/?status=ACTIVE&account_type=SAVINGS&currency=USD
+GET /fintech/api/v3/transactions/?status=COMPLETED&transaction_type=CREDIT&account=3&currency=USD
+```
+
+| ViewSet | Parameter | Filters on |
+|---------|-----------|-----------|
+| Account | `status` | `ACTIVE` / `FROZEN` / `CLOSED` |
+| Account | `account_type` | `SAVINGS` / `CHECKING` / `CREDIT` |
+| Account | `currency` | ISO currency code |
+| Transaction | `status` | `PENDING` / `COMPLETED` / `FAILED` / `REVERSED` |
+| Transaction | `transaction_type` | `DEBIT` / `CREDIT` / `REFUND` |
+| Transaction | `account` | Account PK |
+| Transaction | `currency` | ISO currency code |
+
+### ViewSet lifecycle hooks
+
+Each ViewSet exposes three override points for business logic:
+
+```python
+def perform_create(self, serializer):
+    # Called just before .save() on POST.
+    # Inject audit fields, send notifications, validate business rules.
+    serializer.save()
+
+def perform_update(self, serializer):
+    # Called just before .save() on PUT / PATCH.
+    # Stamp updated_by, trigger downstream events.
+    serializer.save()
+
+def perform_destroy(self, instance):
+    # Hard-delete by default.
+    # Account soft-delete: instance.status = Account.Status.CLOSED; instance.save()
+    # Transaction reversal: instance.status = Transaction.Status.REVERSED; instance.save()
+    instance.delete()
+```
+
+### Quick test with httpie
+
+```bash
+# List all accounts
+http GET http://localhost:8000/fintech/api/v3/accounts/
+
+# Create an account
+http POST http://localhost:8000/fintech/api/v3/accounts/ \
+    user=1 account_number="ACC-001" account_type="SAVINGS" currency="USD"
+
+# Filter active savings accounts
+http GET "http://localhost:8000/fintech/api/v3/accounts/?status=ACTIVE&account_type=SAVINGS"
+
+# Create a transaction
+http POST http://localhost:8000/fintech/api/v3/transactions/ \
+    account=1 amount="250.00" transaction_type="DEBIT"
+
+# Retrieve a transaction by UUID
+http GET http://localhost:8000/fintech/api/v3/transactions/550e8400-e29b-41d4-a716-446655440000/
+```
 
 ## Data Models
 
