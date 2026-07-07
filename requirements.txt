@@ -1,2 +1,6 @@
 django>=5.0,<7.0
 django-debug-toolbar>=5.0
+djangorestframework>=3.14
+gunicorn
+psycopg2-binary
+dj-database-url

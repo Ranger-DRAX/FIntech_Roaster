@@ -17,9 +17,11 @@ A Django-based financial technology application demonstrating advanced ORM queri
 | Component          | Technology                          |
 |--------------------|-------------------------------------|
 | Backend            | Django 5.x / 6.x                   |
-| Database           | SQLite 3 (dev), PostgreSQL (prod)  |
+| Database           | SQLite 3 (dev), PostgreSQL 16 (Docker) |
 | Debugging          | Django Debug Toolbar 5.x           |
-| Python             | 3.10+                              |
+| Python             | 3.12 (Docker image)                |
+| Container Runtime  | Docker 29.x + Docker Compose v5    |
+| App Server         | Gunicorn (4 workers)               |
 
 ## Project Structure
 
@@ -28,6 +30,10 @@ upay_backend/
 ├── manage.py
 ├── requirements.txt
 ├── db.sqlite3
+├── Dockerfile                   # Multi-stage Python 3.12-slim image
+├── docker-compose.yml           # Orchestrates web + db services
+├── docker-entrypoint.sh         # Migrate → collectstatic → gunicorn
+├── .env                         # Local secrets (not committed)
 ├── djangoInternals/
 │   ├── __init__.py
 │   ├── settings.py
@@ -103,7 +109,158 @@ python manage.py runserver
 
 The application will be available at `http://127.0.0.1:8000/`.
 
+---
+
+## 🐳 Docker Integration
+
+The project ships with full Docker support — a `Dockerfile` for the Django app and a `docker-compose.yml` that orchestrates both the web service and a PostgreSQL 16 database. This is the **recommended** way to run the project.
+
+### Services
+
+| Service | Container | Image | Port |
+|---------|-----------|-------|------|
+| `web` | `upay-web` | `upay_backend-web` (built locally) | `8000 → 8000` |
+| `db` | `upay-db` | `postgres:16-alpine` | `5432 → 5432` |
+
+### Prerequisites
+
+- [Docker Desktop](https://www.docker.com/products/docker-desktop/) ≥ 29.x
+- [Docker Compose](https://docs.docker.com/compose/) ≥ v5 (bundled with Docker Desktop)
+
+Verify your installation:
+
+```bash
+docker --version          # Docker version 29.x.x
+docker compose version    # Docker Compose version v5.x.x
+```
+
+### Environment Variables
+
+Create a `.env` file in the project root before starting the containers:
+
+```bash
+# .env
+DJANGO_SECRET_KEY=your-very-secret-key-here
+POSTGRES_PASSWORD=changeme
+DATABASE_URL=postgres://upay_user:changeme@db:5432/upay
+DJANGO_DEBUG=False
+DJANGO_ALLOWED_HOSTS=localhost,127.0.0.1,upay-web
+```
+
+> **Note:** The `.env` file is consumed by the `web` service via `env_file: .env` in `docker-compose.yml`. Never commit this file to version control.
+
+### Build & Run
+
+**Start all services (build image on first run):**
+
+```bash
+docker compose up --build
+```
+
+**Start in detached mode (background):**
+
+```bash
+docker compose up -d --build
+```
+
+The entrypoint script (`docker-entrypoint.sh`) automatically runs on startup:
+
+1. `python manage.py migrate --noinput` — applies all database migrations
+2. `python manage.py collectstatic --noinput` — collects static files
+3. Starts **Gunicorn** with 4 workers bound to `0.0.0.0:8000`
+
+The application will be available at `http://localhost:8000/`.
+
+### Stopping & Cleanup
+
+```bash
+# Stop containers (preserves volumes and images)
+docker compose down
+
+# Stop and remove volumes (wipes the database)
+docker compose down -v
+
+# Remove the built image
+docker rmi upay_backend-web
+```
+
+### Running Management Commands
+
+Execute Django management commands inside the running `web` container:
+
+```bash
+# Open a Django shell
+docker compose exec web python manage.py shell
+
+# Create a superuser
+docker compose exec web python manage.py createsuperuser
+
+# Run tests
+docker compose exec web python manage.py test fintech
+
+# Open a bash shell inside the container
+docker compose exec web bash
+
+# Apply new migrations
+docker compose exec web python manage.py migrate
+```
+
+### Checking Container Status
+
+```bash
+# List running containers
+docker ps
+
+# View live logs from all services
+docker compose logs -f
+
+# View logs from a specific service
+docker compose logs -f web
+docker compose logs -f db
+```
+
+### Dockerfile Overview
+
+```dockerfile
+# Base: python:3.12-slim
+# - Installs libpq-dev and gcc (required for psycopg2)
+# - Copies requirements.txt and installs Python dependencies
+# - Copies application source code
+# - Runs docker-entrypoint.sh (migrate → collectstatic → gunicorn)
+```
+
+| Setting | Value |
+|---------|-------|
+| Base image | `python:3.12-slim` |
+| Working directory | `/app` |
+| Exposed port | `8000` |
+| WSGI server | Gunicorn — `djangoInternals.wsgi:application` |
+| Workers | 4 |
+
+### Docker Compose Architecture
+
+```
+┌─────────────────────────────────────┐
+│          docker-compose.yml         │
+│                                     │
+│  ┌──────────┐      ┌─────────────┐  │
+│  │  upay-web │─────▶  upay-db   │  │
+│  │ :8000    │      │ :5432       │  │
+│  │ gunicorn │      │ postgres:16 │  │
+│  └──────────┘      └─────────────┘  │
+│       │                  │          │
+│  static_volume    postgres_data     │
+│   (named vol)      (named vol)      │
+└─────────────────────────────────────┘
+```
+
+- `web` depends on `db` with `condition: service_healthy` — the app only starts after Postgres passes its health check (`pg_isready`).
+- Both services use named Docker volumes so data persists across restarts.
+
+---
+
 ## Template Endpoints
+
 
 | URL                              | View                        | Description                                      |
 |----------------------------------|-----------------------------|--------------------------------------------------|
@@ -470,19 +627,28 @@ Index(fields=["created_at"])
 
 ## Running Tests
 
+**Local:**
 ```bash
 python manage.py test fintech
 ```
 
+**Inside Docker:**
+```bash
+docker compose exec web python manage.py test fintech
+```
+
 ## Environment Variables
 
-| Variable                | Default                              | Description                |
-|-------------------------|--------------------------------------|----------------------------|
-| `DJANGO_SETTINGS_MODULE`| `djangoInternals.settings`           | Django settings module     |
-| `SECRET_KEY`            | (insecure dev key)                   | Django secret key          |
-| `DEBUG`                 | `True`                               | Debug mode                 |
+| Variable                | Default                              | Description                          |
+|-------------------------|--------------------------------------|--------------------------------------|
+| `DJANGO_SETTINGS_MODULE`| `djangoInternals.settings`           | Django settings module               |
+| `DJANGO_SECRET_KEY`     | (insecure dev key)                   | Django secret key                    |
+| `DJANGO_DEBUG`          | `False` (Docker) / `True` (local)    | Debug mode                           |
+| `DJANGO_ALLOWED_HOSTS`  | `localhost,127.0.0.1,upay-web`       | Comma-separated allowed hosts        |
+| `DATABASE_URL`          | —                                    | Full Postgres DSN (Docker)           |
+| `POSTGRES_PASSWORD`     | `changeme`                           | Postgres password (docker-compose)   |
 
-> **Production:** Set `DEBUG = False`, configure a proper `SECRET_KEY`, and use PostgreSQL.
+> **Production:** Set `DJANGO_DEBUG=False`, configure a strong `DJANGO_SECRET_KEY`, and always use a secure `POSTGRES_PASSWORD`.
 
 ## License
 
